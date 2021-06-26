@@ -1,6 +1,9 @@
 package drawer
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 //Document doc
 type Document struct {
@@ -94,13 +97,46 @@ func (ex Identifier) String() string {
 	return ex.ID
 }
 
+type Expressions []Expr
+
+func (exps Expressions) Join(sep string) string {
+	res := ""
+	for _, ex := range exps {
+		res += fmt.Sprintf("%s,", ex.String())
+	}
+	if len(res) == 0 {
+		return ""
+	}
+	return string(res[:len(res)-1])
+}
+
+//Call its identifier node
+type Call struct {
+	Func      Expr
+	Arguments Expressions
+}
+
+func (ex Call) String() string {
+	res := fmt.Sprintf("%s(%s)", ex.Func.String(), ex.Arguments.Join(","))
+	return res
+}
+
 type Value struct {
 	Value string
 	Kind  string
 }
 
 func (ex Value) String() string {
-	return fmt.Sprintf("%s", ex.Value)
+	return fmt.Sprintf("%s(%s)", ex.Kind, ex.Value)
+}
+
+type Literal struct {
+	Kind     Expr
+	Elements Expressions
+}
+
+func (ex Literal) String() string {
+	return fmt.Sprintf("%s %s{}", ex.Kind.String(), ex.Elements.Join(" "))
 }
 
 type Operation struct {
@@ -139,9 +175,19 @@ func (ex Binary) String() string {
 //If self
 type If struct {
 	BaseNode
+	Init       *Assignation
 	Conditions Expr
 	Body       *Root
 	Else       *Root
+}
+
+//If self
+type For struct {
+	BaseNode
+	Init       *Assignation
+	Conditions Expr
+	Post       Expr
+	Body       *Root
 }
 
 //While while representation
@@ -154,7 +200,31 @@ type While struct {
 //Return
 type Return struct {
 	BaseNode
-	Values []Expr
+	Values Expressions
+}
+
+//Assignation
+type Assignation struct {
+	BaseNode
+	Left  Expressions
+	Right Expressions
+}
+
+func (ex Assignation) String() string {
+	return fmt.Sprintf("%s := %s", ex.Left.Join(""), ex.Right.Join(""))
+}
+
+type ArrayType struct {
+	Type Expr
+	Len  Expr
+}
+
+func (ex ArrayType) String() string {
+	l := ""
+	if ex.Len != nil {
+		l = ex.Len.String()
+	}
+	return strings.ReplaceAll(fmt.Sprintf("[%s]%s", l, ex.Type), " ", "")
 }
 
 type Drawer interface {

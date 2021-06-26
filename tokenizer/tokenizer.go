@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"go/ast"
 
-	"github.com/skyaxl/golactivity/pkg/drawer"
+	"github.com/skyaxl/golactivity/drawer"
 )
 
 type Transformer struct {
@@ -65,6 +65,24 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 				},
 				Conditions: t.Expressions(fi.Cond),
 			}
+			if fi.Init != nil {
+				fiNo.Init = &drawer.Assignation{
+					BaseNode: drawer.BaseNode{
+						Par: fiNo,
+						Dep: root.Depth() + 2,
+					},
+					Left:  make([]drawer.Expr, 0),
+					Right: make([]drawer.Expr, 0),
+				}
+				if ass, ok := fi.Init.(*ast.AssignStmt); ok {
+					for _, ex := range ass.Lhs {
+						fiNo.Init.Left = append(fiNo.Init.Left, t.Expressions(ex))
+					}
+					for _, ex := range ass.Rhs {
+						fiNo.Init.Right = append(fiNo.Init.Right, t.Expressions(ex))
+					}
+				}
+			}
 
 			fiNo.Body = &drawer.Root{}
 			fiNo.Body.Par = fiNo
@@ -116,6 +134,49 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 			if previous != nil {
 				previous.SetNext(act)
 			}
+		}
+	case *ast.ForStmt:
+		{
+			fors := rootFun.(*ast.ForStmt)
+			forr := &drawer.For{
+				BaseNode: drawer.BaseNode{
+					Par:  root,
+					Prev: previous,
+					Dep:  root.Depth() + 1,
+				},
+				Conditions: t.Expressions(fors.Cond),
+			}
+			if fors.Init != nil {
+				forr.Init = &drawer.Assignation{
+					BaseNode: drawer.BaseNode{
+						Par: forr,
+						Dep: root.Depth() + 2,
+					},
+					Left:  make([]drawer.Expr, 0),
+					Right: make([]drawer.Expr, 0),
+				}
+				if ass, ok := fors.Init.(*ast.AssignStmt); ok {
+					for _, ex := range ass.Lhs {
+						forr.Init.Left = append(forr.Init.Left, t.Expressions(ex))
+					}
+					for _, ex := range ass.Rhs {
+						forr.Init.Right = append(forr.Init.Right, t.Expressions(ex))
+					}
+				}
+			}
+
+			if fors.Post != nil {
+
+			}
+
+			forr.Body = &drawer.Root{}
+			forr.Body.Par = forr
+
+			t.Walk(forr, forr.Body, fors.Body)
+			if previous != nil {
+				previous.SetNext(forr)
+			}
+			return
 		}
 	case *ast.SwitchStmt:
 		{
@@ -175,6 +236,43 @@ func (t Transformer) Expressions(exp ast.Expr) drawer.Expr {
 			x := t.Expressions(u.X)
 			sel := t.Expressions(u.Sel)
 			v.ID = fmt.Sprintf("%s.%s", x.String(), sel.String())
+			return v
+		}
+	case *ast.CallExpr:
+		{
+			u := exp.(*ast.CallExpr)
+			v := drawer.Call{
+				Func:      t.Expressions(u.Fun).(drawer.Identifier),
+				Arguments: make(drawer.Expressions, 0),
+			}
+			for _, arg := range u.Args {
+				v.Arguments = append(v.Arguments, t.Expressions(arg))
+			}
+
+			return v
+		}
+	case *ast.CompositeLit:
+		{
+			u := exp.(*ast.CompositeLit)
+			v := drawer.Literal{
+				Kind:     t.Expressions(u.Type),
+				Elements: make(drawer.Expressions, 0),
+			}
+
+			for _, arg := range u.Elts {
+				v.Elements = append(v.Elements, t.Expressions(arg))
+			}
+			return v
+		}
+	case *ast.ArrayType:
+		{
+			u := exp.(*ast.ArrayType)
+			v := drawer.ArrayType{
+				Type: t.Expressions(u.Elt),
+			}
+			if u.Len != nil {
+				v.Len = t.Expressions(u.Len)
+			}
 			return v
 		}
 	}

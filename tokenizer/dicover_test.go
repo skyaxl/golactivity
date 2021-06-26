@@ -4,8 +4,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/skyaxl/golactivity/pkg/reader"
-	"github.com/skyaxl/golactivity/pkg/tokenizer"
+	"github.com/skyaxl/golactivity/reader"
+	"github.com/skyaxl/golactivity/tokenizer"
 )
 
 func TestReadTokens(t *testing.T) {

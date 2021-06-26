@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/skyaxl/golactivity/pkg/drawer"
+	"github.com/skyaxl/golactivity/drawer"
 )
 
 type Plantuml struct {
@@ -50,6 +50,10 @@ func (p *Plantuml) Node(n drawer.Node) {
 		{
 			p.Return(n.(*drawer.Return))
 		}
+	case *drawer.For:
+		{
+			p.For(n.(*drawer.For))
+		}
 
 	}
 
@@ -65,7 +69,14 @@ func (p *Plantuml) Node(n drawer.Node) {
 
 func (p *Plantuml) If(i *drawer.If) {
 	tab := strings.Repeat("\t", i.Dep)
-	io.WriteString(p.wr, fmt.Sprintf("\n%sif (%s) then (yes)", tab, i.Conditions.String()))
+	init := ""
+	if i.Init != nil {
+		init = i.Init.String()
+		io.WriteString(p.wr, fmt.Sprintf("\n%s:%s;", tab, init))
+	}
+	cond := i.Conditions.String()
+	line := fmt.Sprintf("\n%sif (%s) then (yes)", tab, cond)
+	io.WriteString(p.wr, line)
 	p.Node(i.Body)
 	io.WriteString(p.wr, fmt.Sprintf("\n%selse", tab))
 	if i.Else != nil {
@@ -91,12 +102,20 @@ func (p *Plantuml) Activity(a *drawer.Activity) {
 func (p *Plantuml) Return(a *drawer.Return) {
 	tab := strings.Repeat("\t", a.Dep)
 	io.WriteString(p.wr, fmt.Sprintf("\n%send", tab))
-	io.WriteString(p.wr, fmt.Sprintf("\n%snote right:Return (", tab))
-	if len(a.Values) != 0 {
+	io.WriteString(p.wr, fmt.Sprintf("\n%snote right:Return (%s)", tab, a.Values.Join(",")))
+}
 
-		for _, e := range a.Values {
-			io.WriteString(p.wr, fmt.Sprintf("%s,", e.String()))
-		}
-		io.WriteString(p.wr, ");")
+func (p *Plantuml) For(i *drawer.For) {
+	tab := strings.Repeat("\t", i.Dep)
+	init := ""
+	if i.Init != nil {
+		init = i.Init.String()
+		io.WriteString(p.wr, fmt.Sprintf("\n%s:%s;", tab, init))
 	}
+	cond := i.Conditions.String()
+	line := fmt.Sprintf("\n%srepeat", tab)
+	io.WriteString(p.wr, line)
+	p.Node(i.Body)
+	line = fmt.Sprintf("\n%srepeat while (%s) is (true)", tab, cond)
+	io.WriteString(p.wr, line)
 }

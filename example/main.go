@@ -2,6 +2,7 @@ package example
 
 import (
 	"context"
+	"fmt"
 )
 
 type FakeService struct {
@@ -15,15 +16,19 @@ type Request struct {
 //@draw
 func (fs *FakeService) Execute(ctx context.Context, request Request) string {
 
-	b := true
-
-	if (request.OK == b || ctx == nil) && request.Name != "nullable" {
-		fs.ExecuteNone(ctx, request)
-		return "no"
+	array1 := [][]int{{1}}
+	for i := 0; i < len(array1); i++ {
+		array2 := array1[i]
+		if j := len(array2); j == 0 {
+			return fmt.Sprint(j)
+		}
 	}
 
-	// if i := len([]int{}); i == 0 {
-	// 	return fmt.Sprint(i)
+	// b := true
+
+	// if (request.OK == b || ctx == nil) && request.Name != "nullable" {
+	// 	fs.ExecuteNone(ctx, request)
+	// 	return "no"
 	// }
 
 	// if 2*2 == 4 {
@@ -63,6 +68,10 @@ func (fs *FakeService) Execute(ctx context.Context, request Request) string {
 	// 	}
 	// }
 	return ""
+}
+
+func (fs *FakeService) Two() {
+
 }
 
 //ExecuteNone

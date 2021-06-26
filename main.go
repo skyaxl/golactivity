@@ -3,9 +3,9 @@ package main
 import (
 	"os"
 
-	"github.com/skyaxl/golactivity/pkg/drawer/plantuml"
-	"github.com/skyaxl/golactivity/pkg/reader"
-	"github.com/skyaxl/golactivity/pkg/tokenizer"
+	"github.com/skyaxl/golactivity/drawer/plantuml"
+	"github.com/skyaxl/golactivity/reader"
+	"github.com/skyaxl/golactivity/tokenizer"
 )
 
 func main() {
