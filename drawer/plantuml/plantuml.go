@@ -54,7 +54,14 @@ func (p *Plantuml) Node(n drawer.Node) {
 		{
 			p.For(n.(*drawer.For))
 		}
-
+	case *drawer.Assignation:
+		{
+			p.Assignation(n.(*drawer.Assignation))
+		}
+	case *drawer.Range:
+		{
+			p.Range(n.(*drawer.Range))
+		}
 	}
 
 	if n == nil {
@@ -93,7 +100,7 @@ func (p *Plantuml) While(i *drawer.While) {
 
 func (p *Plantuml) Activity(a *drawer.Activity) {
 	tab := strings.Repeat("\t", a.Dep)
-	io.WriteString(p.wr, fmt.Sprintf("\n%s:%s;", tab, a.Name))
+	io.WriteString(p.wr, fmt.Sprintf("\n%s:%s;", tab, a.Exp))
 	if a.Comment != "" {
 		io.WriteString(p.wr, fmt.Sprintf("%snote right:%s;", tab, a.Comment))
 	}
@@ -118,4 +125,26 @@ func (p *Plantuml) For(i *drawer.For) {
 	p.Node(i.Body)
 	line = fmt.Sprintf("\n%srepeat while (%s) is (true)", tab, cond)
 	io.WriteString(p.wr, line)
+}
+
+func (p *Plantuml) Range(r *drawer.Range) {
+	tab := strings.Repeat("\t", r.Dep)
+
+	line := fmt.Sprintf("\n%srepeat", tab)
+	io.WriteString(p.wr, line)
+	key := r.Key.String()
+	if key != "_" {
+		io.WriteString(p.wr, fmt.Sprintf("\n\t%s:%s := keyOf %s;", tab, key, r.ID))
+	}
+	if r.Value != nil && r.Value.String() != "_" {
+		io.WriteString(p.wr, fmt.Sprintf("\n\t%s:%s := itemOf %s;", tab, r.Value, r.ID))
+	}
+	p.Node(r.Body)
+	line = fmt.Sprintf("\n%srepeat while (range %s) is (true)", tab, r.ID)
+	io.WriteString(p.wr, line)
+}
+
+func (p *Plantuml) Assignation(a *drawer.Assignation) {
+	tab := strings.Repeat("\t", a.Dep)
+	io.WriteString(p.wr, fmt.Sprintf("\n%s:%s;", tab, a.String()))
 }

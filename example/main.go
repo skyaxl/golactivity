@@ -24,30 +24,34 @@ func (fs *FakeService) Execute(ctx context.Context, request Request) string {
 		}
 	}
 
-	// b := true
+	for key, v := range array1 {
+		fmt.Print(key, v)
+	}
 
-	// if (request.OK == b || ctx == nil) && request.Name != "nullable" {
-	// 	fs.ExecuteNone(ctx, request)
-	// 	return "no"
-	// }
+	b := true
 
-	// if 2*2 == 4 {
-	// 	return "4"
-	// }
+	if (request.OK == b || ctx == nil) && request.Name != "nullable" {
+		fs.ExecuteNone(ctx, request)
+		return "no"
+	}
 
-	// if !request.OK {
-	// 	return "none"
-	// }
-	// if request.Name == "" {
-	// 	return "name"
-	// }
+	if 2*2 == 4 {
+		return "4"
+	}
 
-	// fs.ExecuteNone(ctx, request)
+	if !request.OK {
+		return "none"
+	}
+	if request.Name == "" {
+		return "name"
+	}
 
-	// validator := func() bool {
-	// 	return true
-	// }
-	// validator()
+	fs.ExecuteNone(ctx, request)
+
+	validator := func() bool {
+		return true
+	}
+	validator()
 
 	// switch request.Name {
 	// case "a":

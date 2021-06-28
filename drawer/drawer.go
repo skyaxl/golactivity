@@ -61,7 +61,7 @@ type Root struct {
 
 type Activity struct {
 	BaseNode
-	Name    string
+	Exp     Expr
 	Comment string
 }
 
@@ -99,9 +99,14 @@ func (ex Identifier) String() string {
 
 type Expressions []Expr
 
-func (exps Expressions) Join(sep string) string {
-	res := ""
+func (exps Expressions) Join(sep string) (res string) {
+	if exps == nil {
+		return res
+	}
 	for _, ex := range exps {
+		if ex == nil {
+			continue
+		}
 		res += fmt.Sprintf("%s,", ex.String())
 	}
 	if len(res) == 0 {
@@ -136,7 +141,14 @@ type Literal struct {
 }
 
 func (ex Literal) String() string {
-	return fmt.Sprintf("%s %s{}", ex.Kind.String(), ex.Elements.Join(" "))
+	if ex.Kind == nil {
+		return fmt.Sprintf("{%s}", ex.Elements.Join(" "))
+	}
+	if ex.Elements == nil {
+		return fmt.Sprintf("%s", ex.Kind.String())
+	}
+
+	return fmt.Sprintf("%s(%s)", ex.Kind.String(), ex.Elements.Join(" "))
 }
 
 type Operation struct {
@@ -227,8 +239,25 @@ func (ex ArrayType) String() string {
 	return strings.ReplaceAll(fmt.Sprintf("[%s]%s", l, ex.Type), " ", "")
 }
 
+type Index struct {
+	Ident Expr
+	Index Expr
+}
+
+func (ex Index) String() string {
+	return fmt.Sprintf("%s[%s]", ex.Ident, ex.Index)
+}
+
 type Drawer interface {
 	Start()
 	End()
 	Node(n Node)
+}
+
+type Range struct {
+	BaseNode
+	ID    Expr
+	Key   Expr
+	Value Expr
+	Body  *Root
 }

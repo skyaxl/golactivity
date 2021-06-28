@@ -99,6 +99,28 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 			call := rootFun.(*ast.ExprStmt)
 			t.Walk(root, previous, call.X)
 		}
+	case *ast.AssignStmt:
+		{
+			as := rootFun.(*ast.AssignStmt)
+			ass := &drawer.Assignation{
+				BaseNode: drawer.BaseNode{
+					Par: root,
+					Dep: root.Depth() + 1,
+				},
+				Left:  make([]drawer.Expr, 0),
+				Right: make([]drawer.Expr, 0),
+			}
+			for _, ex := range as.Lhs {
+				ass.Left = append(ass.Left, t.Expressions(ex))
+			}
+			for _, ex := range as.Rhs {
+				ass.Right = append(ass.Right, t.Expressions(ex))
+			}
+
+			if previous != nil {
+				previous.SetNext(ass)
+			}
+		}
 	case *ast.CallExpr:
 		{
 			call := rootFun.(*ast.CallExpr)
@@ -108,7 +130,7 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 					Prev: previous,
 					Dep:  root.Depth() + 1,
 				},
-				Name: t.Expressions(call.Fun).String(),
+				Exp: t.Expressions(call),
 			}
 			if previous != nil {
 				previous.SetNext(act)
@@ -172,6 +194,28 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 			forr.Body = &drawer.Root{}
 			forr.Body.Par = forr
 
+			t.Walk(forr, forr.Body, fors.Body)
+			if previous != nil {
+				previous.SetNext(forr)
+			}
+			return
+		}
+	case *ast.RangeStmt:
+		{
+			fors := rootFun.(*ast.RangeStmt)
+			forr := &drawer.Range{
+				BaseNode: drawer.BaseNode{
+					Par:  root,
+					Prev: previous,
+					Dep:  root.Depth() + 1,
+				},
+				ID:    t.Expressions(fors.X),
+				Key:   t.Expressions(fors.Key),
+				Value: t.Expressions(fors.Value),
+				Body:  &drawer.Root{},
+			}
+
+			forr.Body.Par = forr
 			t.Walk(forr, forr.Body, fors.Body)
 			if previous != nil {
 				previous.SetNext(forr)
@@ -272,6 +316,15 @@ func (t Transformer) Expressions(exp ast.Expr) drawer.Expr {
 			}
 			if u.Len != nil {
 				v.Len = t.Expressions(u.Len)
+			}
+			return v
+		}
+	case *ast.IndexExpr:
+		{
+			u := exp.(*ast.IndexExpr)
+			v := drawer.Index{
+				Ident: t.Expressions(u.X),
+				Index: t.Expressions(u.Index),
 			}
 			return v
 		}
