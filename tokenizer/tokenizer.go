@@ -69,7 +69,7 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 				fiNo.Init = &drawer.Assignation{
 					BaseNode: drawer.BaseNode{
 						Par: fiNo,
-						Dep: root.Depth() + 2,
+						Dep: root.Depth() + 1,
 					},
 					Left:  make([]drawer.Expr, 0),
 					Right: make([]drawer.Expr, 0),
@@ -172,7 +172,7 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 				forr.Init = &drawer.Assignation{
 					BaseNode: drawer.BaseNode{
 						Par: forr,
-						Dep: root.Depth() + 2,
+						Dep: root.Depth() + 1,
 					},
 					Left:  make([]drawer.Expr, 0),
 					Right: make([]drawer.Expr, 0),
@@ -224,7 +224,67 @@ func (t Transformer) Walk(root drawer.Node, previous drawer.Node, rootFun ast.No
 		}
 	case *ast.SwitchStmt:
 		{
-			panic("Not inplemented")
+			sw := rootFun.(*ast.SwitchStmt)
+			swi := &drawer.Switch{
+				BaseNode: drawer.BaseNode{
+					Par:  root,
+					Prev: previous,
+					Dep:  root.Depth() + 1,
+				},
+				Cases: make([]*drawer.Case, 0),
+				Tag:   t.Expressions(sw.Tag),
+			}
+			if sw.Init != nil {
+				swi.Init = &drawer.Assignation{
+					BaseNode: drawer.BaseNode{
+						Par: swi,
+						Dep: root.Depth(),
+					},
+					Left:  make([]drawer.Expr, 0),
+					Right: make([]drawer.Expr, 0),
+				}
+				if ass, ok := sw.Init.(*ast.AssignStmt); ok {
+					for _, ex := range ass.Lhs {
+						swi.Init.Left = append(swi.Init.Left, t.Expressions(ex))
+					}
+					for _, ex := range ass.Rhs {
+						swi.Init.Right = append(swi.Init.Right, t.Expressions(ex))
+					}
+				}
+			}
+
+			if sw.Body != nil {
+				for _, c := range sw.Body.List {
+					cas := c.(*ast.CaseClause)
+					swic := &drawer.Case{
+						BaseNode: drawer.BaseNode{
+							Par: swi,
+							Dep: swi.Depth(),
+						},
+						Value: make(drawer.Expressions, 0),
+						Body:  &drawer.Root{},
+					}
+					swic.Body.BaseNode = drawer.BaseNode{
+						Par: swic,
+						Dep: swic.Depth(),
+					}
+					if cas.List != nil {
+						for _, exp := range cas.List {
+							swic.Value = append(swic.Value, t.Expressions(exp))
+						}
+					}
+
+					t.Walk(swic.Body, nil, &ast.BlockStmt{
+						List: cas.Body,
+					})
+					swi.Cases = append(swi.Cases, swic)
+				}
+
+			}
+
+			if previous != nil {
+				previous.SetNext(swi)
+			}
 		}
 
 	}
@@ -271,6 +331,28 @@ func (t Transformer) Expressions(exp ast.Expr) drawer.Expr {
 			v := drawer.Value{}
 			v.Value = u.Value
 			v.Kind = u.Kind.String()
+			return v
+		}
+	case *ast.ChanType:
+		{
+			u := exp.(*ast.ChanType)
+			v := drawer.Chan{}
+			v.Value = t.Expressions(u.Value)
+			return v
+		}
+	case *ast.FuncLit:
+		{
+			u := exp.(*ast.FuncLit)
+			v := drawer.FunLiteral{
+				Args:      make(drawer.Expressions, 0),
+				Responses: make(drawer.Expressions, 0),
+			}
+			for _, a := range u.Type.Params.List {
+				v.Args = append(v.Args, drawer.Field{
+					Name: GetName(a.Names),
+					Kind: t.Expressions(a.Type),
+				})
+			}
 			return v
 		}
 	case *ast.SelectorExpr:

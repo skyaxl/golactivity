@@ -62,6 +62,10 @@ func (p *Plantuml) Node(n drawer.Node) {
 		{
 			p.Range(n.(*drawer.Range))
 		}
+	case *drawer.Switch:
+		{
+			p.Switch(n.(*drawer.Switch))
+		}
 	}
 
 	if n == nil {
@@ -147,4 +151,27 @@ func (p *Plantuml) Range(r *drawer.Range) {
 func (p *Plantuml) Assignation(a *drawer.Assignation) {
 	tab := strings.Repeat("\t", a.Dep)
 	io.WriteString(p.wr, fmt.Sprintf("\n%s:%s;", tab, a.String()))
+}
+
+func (p *Plantuml) Switch(s *drawer.Switch) {
+	tab := strings.Repeat("\t", s.Dep)
+	init := ""
+	if s.Init != nil {
+		init = s.Init.String()
+		io.WriteString(p.wr, fmt.Sprintf("\n%s:%s;", tab, init))
+	}
+
+	cond := s.Tag.String()
+	line := fmt.Sprintf("\n\n%sswitch (switch(%s))", tab, cond)
+	io.WriteString(p.wr, line)
+	for _, c := range s.Cases {
+		if c.Value != nil && len(c.Value) != 0 {
+			io.WriteString(p.wr, fmt.Sprintf("\n%scase (case %s)", tab, c.Value.Join("&&")))
+		} else {
+			io.WriteString(p.wr, fmt.Sprintf("\n%scase (default)", tab))
+		}
+		p.Node(c.Body)
+		io.WriteString(p.wr, "\n")
+	}
+	io.WriteString(p.wr, fmt.Sprintf("\n%sendswitch", tab))
 }
