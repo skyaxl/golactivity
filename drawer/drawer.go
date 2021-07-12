@@ -132,7 +132,19 @@ type Value struct {
 }
 
 func (ex Value) String() string {
+	if ex.Kind == "STRING" {
+		return ex.Value
+	}
 	return fmt.Sprintf("%s(%s)", ex.Kind, ex.Value)
+}
+
+type Field struct {
+	Name string
+	Kind Expr
+}
+
+func (ex Field) String() string {
+	return fmt.Sprintf("%s %s", ex.Name, ex.Kind)
 }
 
 type Literal struct {
@@ -149,6 +161,19 @@ func (ex Literal) String() string {
 	}
 
 	return fmt.Sprintf("%s(%s)", ex.Kind.String(), ex.Elements.Join(" "))
+}
+
+type FunLiteral struct {
+	Args      Expressions
+	Responses Expressions
+}
+
+func (ex FunLiteral) String() string {
+	if ex.Responses == nil || len(ex.Responses) == 0 {
+		return fmt.Sprintf("func (%s){Literal func}", ex.Args.Join(" "))
+	}
+
+	return fmt.Sprintf("func (%s) (%s){Literal func}", ex.Args.Join(","), ex.Responses.Join(","))
 }
 
 type Operation struct {
@@ -182,6 +207,15 @@ type Binary struct {
 
 func (ex Binary) String() string {
 	return fmt.Sprintf("%s %s %s", ex.Left.String(), ex.Oper, ex.Right.String())
+}
+
+type Chan struct {
+	Value   Expr
+	Comment string
+}
+
+func (ex Chan) String() string {
+	return fmt.Sprintf("chan %s", ex.Value)
 }
 
 //If self
@@ -260,4 +294,17 @@ type Range struct {
 	Key   Expr
 	Value Expr
 	Body  *Root
+}
+
+type Switch struct {
+	BaseNode
+	Init  *Assignation
+	Tag   Expr
+	Cases []*Case
+}
+
+type Case struct {
+	BaseNode
+	Body  *Root
+	Value Expressions
 }
