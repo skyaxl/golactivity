@@ -5,7 +5,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/skyaxl/golactivity/drawer"
+	drawer "github.com/skyaxl/golactivity/renders"
 )
 
 type Plantuml struct {

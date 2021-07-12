@@ -3,8 +3,8 @@ package main
 import (
 	"os"
 
-	"github.com/skyaxl/golactivity/drawer/plantuml"
 	"github.com/skyaxl/golactivity/reader"
+	"github.com/skyaxl/golactivity/renders/plantuml"
 	"github.com/skyaxl/golactivity/tokenizer"
 )
 
