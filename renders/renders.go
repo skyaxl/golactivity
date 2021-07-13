@@ -1,4 +1,4 @@
-package drawer
+package renders
 
 import (
 	"fmt"
@@ -157,7 +157,7 @@ func (ex Literal) String() string {
 		return fmt.Sprintf("{%s}", ex.Elements.Join(" "))
 	}
 	if ex.Elements == nil {
-		return fmt.Sprintf("%s", ex.Kind.String())
+		return ex.Kind.String()
 	}
 
 	return fmt.Sprintf("%s(%s)", ex.Kind.String(), ex.Elements.Join(" "))

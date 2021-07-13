@@ -8,6 +8,7 @@ import (
 	"regexp"
 )
 
+// Read an directory and try to find packages
 type Reader struct {
 	path  string
 	regex string
