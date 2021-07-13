@@ -53,10 +53,10 @@ func (t *For) Process(node ast.Node, root renders.Node, previous renders.Node) e
 			}
 		}
 	}
+	//@TODO
+	// if fors.Post != nil {
 
-	if fors.Post != nil {
-
-	}
+	// }
 
 	forr.Body = &renders.Root{}
 	forr.Body.Par = forr

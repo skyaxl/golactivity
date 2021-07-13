@@ -53,11 +53,13 @@ func RegisterExpressionProcessor(tp reflect.Type, processor processors.Processor
 	statementProcessors[tp] = processor
 }
 
+// Transformer responsible to conver ast tokens to renders tokens.
 type Transformer struct {
 	funcs *ast.FuncDecl
 }
 
-//NewTransformer new transformer
+// NewTransformer new transformer
+// receives a func declaration
 func NewTransformer(funcs *ast.FuncDecl) *Transformer {
 	return &Transformer{funcs: funcs}
 }
@@ -103,7 +105,6 @@ func (t Transformer) Walk(root renders.Node, previous renders.Node, node ast.Nod
 		logger.Fatalf("A fatal error was found to process: %v", err)
 		return
 	}
-	return
 }
 
 //Expressions transform expressions

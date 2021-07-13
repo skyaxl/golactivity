@@ -12,38 +12,31 @@ partition Execute {
 		else
 		endif
 	repeat while (i < len(array1)) is (true)
-	repeat
-		:key := keyOf array1;
-		:v := itemOf array1;
-		:fmt.Print(key,v);
-	repeat while (range array1) is (true)
 	:b := true;
-	if ((request.OK == b || ctx == nil) && request.Name != STRING("nullable")) then (yes)
+	if ((request.OK == b || ctx == nil) && request.Name != "nullable") then (yes)
 		:fs.ExecuteNone(ctx,request);
 		end
-		note right:Return (STRING("no"))
+		note right:Return ("no")
 	else
 	endif
-	if (INT(2) * INT(2) == INT(4)) then (yes)
-		end
-		note right:Return (STRING("4"))
-	else
-	endif
-	if (!request.OK) then (yes)
-		end
-		note right:Return (STRING("none"))
-	else
-	endif
-	if (request.Name == STRING("")) then (yes)
-		end
-		note right:Return (STRING("name"))
-	else
-	endif
-	:fs.ExecuteNone(ctx,request);
-	:validator := ;
+	:c1 := make(chan string);
+	:validator := func () ( bool){Literal func};
 	:validator();
-	end
-	note right:Return (STRING(""))
+
+	switch (switch(request.Name))
+	case (case "a")
+		end
+		note right:Return (request.Name + request.Name)
+
+	case (case "go")
+		end
+		note right:Return (<-c1)
+
+	case (default)
+		end
+		note right:Return (request.Name)
+
+	endswitch
 }
 stop
 @enduml
