@@ -20,3 +20,9 @@ type Base struct {
 	Walker     Walker
 	Expression Expression
 }
+
+type ExpressionProcessorCreator func(expression Expression) (ExpressionProcessor, error)
+
+type ExpressionProcessor interface {
+	Process(exp ast.Expr) (renders.Expr, error)
+}

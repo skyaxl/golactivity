@@ -1,7 +1,6 @@
 package tokenizer
 
 import (
-	"fmt"
 	"go/ast"
 	"os"
 	"reflect"
@@ -10,12 +9,13 @@ import (
 	"github.com/skyaxl/golactivity/tokenizer/processors"
 	"github.com/skyaxl/golactivity/tokenizer/processors/blocks"
 	"github.com/skyaxl/golactivity/tokenizer/processors/control"
+	"github.com/skyaxl/golactivity/tokenizer/processors/expressions"
 
 	"github.com/withmandala/go-log"
 )
 
 var (
-	typeProcessors = map[reflect.Type]processors.ProcessorCreator{
+	statementProcessors = map[reflect.Type]processors.ProcessorCreator{
 		reflect.TypeOf(&ast.IfStmt{}):     control.NewIfProcessor,
 		reflect.TypeOf(&ast.SwitchStmt{}): control.NewSwitchProcessor,
 		reflect.TypeOf(&ast.ForStmt{}):    control.NewForProcessor,
@@ -26,8 +26,32 @@ var (
 		reflect.TypeOf(&ast.AssignStmt{}): blocks.NewAssignationProcessor,
 		reflect.TypeOf(&ast.CallExpr{}):   blocks.NewCallProcessor,
 	}
+	expressionProcessors = map[reflect.Type]processors.ExpressionProcessorCreator{
+		reflect.TypeOf(&ast.UnaryExpr{}):    expressions.NewUnary,
+		reflect.TypeOf(&ast.Ident{}):        expressions.NewIdent,
+		reflect.TypeOf(&ast.BinaryExpr{}):   expressions.NewBinary,
+		reflect.TypeOf(&ast.ParenExpr{}):    expressions.NewParen,
+		reflect.TypeOf(&ast.BasicLit{}):     expressions.NewBasicLit,
+		reflect.TypeOf(&ast.ChanType{}):     expressions.NewChan,
+		reflect.TypeOf(&ast.FuncLit{}):      expressions.NewFuncLit,
+		reflect.TypeOf(&ast.SelectorExpr{}): expressions.NewSelector,
+		reflect.TypeOf(&ast.CallExpr{}):     expressions.NewCall,
+		reflect.TypeOf(&ast.CompositeLit{}): expressions.NewCompositeLit,
+		reflect.TypeOf(&ast.ArrayType{}):    expressions.NewArrayType,
+		reflect.TypeOf(&ast.IndexExpr{}):    expressions.NewIndex,
+	}
 	logger = log.New(os.Stderr)
 )
+
+// RegisterStatementProcessor add new processor or replace existent
+func RegisterStatementProcessor(tp reflect.Type, processor processors.ExpressionProcessorCreator) {
+	expressionProcessors[tp] = processor
+}
+
+// RegisterExpressionProcessor add new processor or replace existent
+func RegisterExpressionProcessor(tp reflect.Type, processor processors.ProcessorCreator) {
+	statementProcessors[tp] = processor
+}
 
 type Transformer struct {
 	funcs *ast.FuncDecl
@@ -55,6 +79,7 @@ func (t Transformer) Transform() (doc *renders.Document) {
 	return doc
 }
 
+// Walk navigates to nodes and process them.
 func (t Transformer) Walk(root renders.Node, previous renders.Node, node ast.Node) {
 	var (
 		creator   processors.ProcessorCreator
@@ -65,7 +90,7 @@ func (t Transformer) Walk(root renders.Node, previous renders.Node, node ast.Nod
 	if previous == nil {
 		previous = root
 	}
-	if creator, ok = typeProcessors[reflect.TypeOf(node)]; !ok {
+	if creator, ok = statementProcessors[reflect.TypeOf(node)]; !ok {
 		logger.Errorf("The type %T was not found in processors", node)
 		return
 	}
@@ -83,125 +108,27 @@ func (t Transformer) Walk(root renders.Node, previous renders.Node, node ast.Nod
 
 //Expressions transform expressions
 // *ast.Binary, *ast.Unary, *ast.Ident, *ast.BasicLit
-func (t Transformer) Expressions(exp ast.Expr) renders.Expr {
-	switch exp.(type) {
-	case *ast.UnaryExpr:
-		{
-			u := exp.(*ast.UnaryExpr)
-			du := renders.Unary{}
-			du.Oper = u.Op.String()
-			du.Left = t.Expressions(u.X)
-			return du
-		}
-	case *ast.Ident:
-		{
-			u := exp.(*ast.Ident)
-			du := renders.Identifier{}
-			du.ID = u.String()
-			return du
-		}
-	case *ast.BinaryExpr:
-		{
-			u := exp.(*ast.BinaryExpr)
-			du := renders.Binary{}
-			du.Oper = u.Op.String()
-			du.Left = t.Expressions(u.X)
-			du.Right = t.Expressions(u.Y)
-			return du
-		}
-	case *ast.ParenExpr:
-		{
-			u := exp.(*ast.ParenExpr)
-			du := renders.Parent{}
-			du.Expr = t.Expressions(u.X)
-			return du
-		}
-	case *ast.BasicLit:
-		{
-			u := exp.(*ast.BasicLit)
-			v := renders.Value{}
-			v.Value = u.Value
-			v.Kind = u.Kind.String()
-			return v
-		}
-	case *ast.ChanType:
-		{
-			u := exp.(*ast.ChanType)
-			v := renders.Chan{}
-			v.Value = t.Expressions(u.Value)
-			return v
-		}
-	case *ast.FuncLit:
-		{
-			u := exp.(*ast.FuncLit)
-			v := renders.FunLiteral{
-				Args:      make(renders.Expressions, 0),
-				Responses: make(renders.Expressions, 0),
-			}
-			for _, a := range u.Type.Params.List {
-				v.Args = append(v.Args, renders.Field{
-					Name: GetName(a.Names),
-					Kind: t.Expressions(a.Type),
-				})
-			}
-			return v
-		}
-	case *ast.SelectorExpr:
-		{
-			u := exp.(*ast.SelectorExpr)
-			v := renders.Identifier{}
-			x := t.Expressions(u.X)
-			sel := t.Expressions(u.Sel)
-			v.ID = fmt.Sprintf("%s.%s", x.String(), sel.String())
-			return v
-		}
-	case *ast.CallExpr:
-		{
-			u := exp.(*ast.CallExpr)
-			v := renders.Call{
-				Func:      t.Expressions(u.Fun).(renders.Identifier),
-				Arguments: make(renders.Expressions, 0),
-			}
-			for _, arg := range u.Args {
-				v.Arguments = append(v.Arguments, t.Expressions(arg))
-			}
-
-			return v
-		}
-	case *ast.CompositeLit:
-		{
-			u := exp.(*ast.CompositeLit)
-			v := renders.Literal{
-				Kind:     t.Expressions(u.Type),
-				Elements: make(renders.Expressions, 0),
-			}
-
-			for _, arg := range u.Elts {
-				v.Elements = append(v.Elements, t.Expressions(arg))
-			}
-			return v
-		}
-	case *ast.ArrayType:
-		{
-			u := exp.(*ast.ArrayType)
-			v := renders.ArrayType{
-				Type: t.Expressions(u.Elt),
-			}
-			if u.Len != nil {
-				v.Len = t.Expressions(u.Len)
-			}
-			return v
-		}
-	case *ast.IndexExpr:
-		{
-			u := exp.(*ast.IndexExpr)
-			v := renders.Index{
-				Ident: t.Expressions(u.X),
-				Index: t.Expressions(u.Index),
-			}
-			return v
-		}
+func (t Transformer) Expressions(exp ast.Expr) (res renders.Expr) {
+	var (
+		creator   processors.ExpressionProcessorCreator
+		processor processors.ExpressionProcessor
+		ok        bool
+		err       error
+	)
+	if creator, ok = expressionProcessors[reflect.TypeOf(exp)]; !ok {
+		logger.Errorf("The type %T was not found in processors", exp)
+		return nil
 	}
 
-	return nil
+	if processor, err = creator(t.Expressions); err != nil {
+		logger.Fatalf("A fatal error was found in create a processor: %v", err)
+		return nil
+	}
+
+	if res, err = processor.Process(exp); err != nil {
+		logger.Fatalf("A fatal error was found to process: %v", err)
+		return nil
+	}
+
+	return res
 }

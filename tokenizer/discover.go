@@ -27,11 +27,9 @@ func getFileFuncs(pkg *ast.File) (res []*ast.FuncDecl) {
 			{
 				f := decs.(*ast.FuncDecl)
 				if f.Doc == nil || !ExistsComment(f.Doc.List, DrawAspect) {
-					fmt.Printf("Not %s: %v\n", f.Name, f)
 					break
 				}
 				res = append(res, f)
-				fmt.Printf("Function %s: %v\n", f.Name, f)
 			}
 		}
 	}
